@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  /* Palette derived from the real AHCD logo.
+     --color-navy is sampled directly from the logo PNG background (#030E29),
+     so the opaque logo image sits seamlessly on navy surfaces with no visible box. */
+  --color-navy: #030e29;
+  --color-navy-soft: #0b1a3a;
+  --color-navy-line: #1b2b4d;
+  --color-cream: #f5f1e8;
+  --color-cream-deep: #e8e1d2;
+  --color-orange: #f26b1d;
+  --color-orange-deep: #d4550c;
+  --color-flame: #ffc13b;
+  --color-blue: #1e6bff;
+  --color-ink: #0a1020;
+
+  --font-display: var(--font-anton), "Arial Narrow", "Helvetica Neue", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    background-color: var(--color-navy);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Anchor targets clear the sticky navbar. */
+  [id] {
+    scroll-margin-top: 6.5rem;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-flame);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@utility display-hed {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 0.92;
+  text-transform: uppercase;
+}
+
+/* Repeating diagonal hazard stripes used on the thin accent rules. */
+@utility flame-rule {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-orange) 0 10px,
+    var(--color-flame) 10px 20px
+  );
+}
