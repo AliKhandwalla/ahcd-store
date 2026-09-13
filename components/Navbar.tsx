@@ -9,11 +9,14 @@ import { navLinks, site } from "@/lib/site";
 
 export default function Navbar({
   user,
+  isAdmin,
   signOutSlot,
   mobileSignOutSlot,
 }: {
   /** Narrow projection only — never the full Supabase User object. */
   user: NavUser | null;
+  /** Server-computed. A boolean crosses the boundary, never ADMIN_EMAIL. */
+  isAdmin: boolean;
   signOutSlot: React.ReactNode;
   mobileSignOutSlot: React.ReactNode;
 }) {
@@ -74,7 +77,11 @@ export default function Navbar({
             </li>
             <li>
               {user ? (
-                <AccountMenu user={user} signOutSlot={signOutSlot} />
+                <AccountMenu
+                  user={user}
+                  isAdmin={isAdmin}
+                  signOutSlot={signOutSlot}
+                />
               ) : (
                 <Link
                   href="/login"
@@ -150,6 +157,17 @@ export default function Navbar({
                     Account
                   </Link>
                 </li>
+                {isAdmin && (
+                  <li className="border-b border-navy-line/60">
+                    <Link
+                      href="/admin"
+                      onClick={() => setOpen(false)}
+                      className="block py-4 text-base font-semibold tracking-wide text-flame uppercase"
+                    >
+                      Admin
+                    </Link>
+                  </li>
+                )}
                 <li className="py-4">{mobileSignOutSlot}</li>
               </>
             ) : (

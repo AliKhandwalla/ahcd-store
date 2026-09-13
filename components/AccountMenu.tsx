@@ -7,9 +7,12 @@ import { initialsFor, type NavUser } from "@/lib/auth-user";
 
 export default function AccountMenu({
   user,
+  isAdmin,
   signOutSlot,
 }: {
   user: NavUser;
+  /** Computed server-side. Hiding the link is cosmetic — /admin re-checks. */
+  isAdmin: boolean;
   /** Server-rendered sign-out form, passed through so the action stays server-side. */
   signOutSlot: React.ReactNode;
 }) {
@@ -72,6 +75,16 @@ export default function AccountMenu({
         >
           Account
         </Link>
+
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={() => setOpen(false)}
+            className="block border-t border-navy-line px-4 py-3 text-sm font-semibold tracking-wide text-flame uppercase transition-colors hover:bg-navy-soft"
+          >
+            Admin
+          </Link>
+        )}
 
         <div className="border-t border-navy-line px-4 py-3">{signOutSlot}</div>
       </div>

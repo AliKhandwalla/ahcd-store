@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
         hostname: "lh3.googleusercontent.com",
         pathname: "/**",
       },
+      {
+        // Signed URLs for update images in the private Supabase Storage bucket.
+        protocol: "https",
+        hostname: "yvczbsjlgebyhkhievyn.supabase.co",
+        pathname: "/storage/v1/object/**",
+      },
     ],
   },
 };
