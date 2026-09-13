@@ -1,10 +1,22 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import AccountMenu from "@/components/AccountMenu";
+import type { NavUser } from "@/lib/auth-user";
 import { navLinks, site } from "@/lib/site";
 
-export default function Navbar() {
+export default function Navbar({
+  user,
+  signOutSlot,
+  mobileSignOutSlot,
+}: {
+  /** Narrow projection only — never the full Supabase User object. */
+  user: NavUser | null;
+  signOutSlot: React.ReactNode;
+  mobileSignOutSlot: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   // Escape closes the mobile panel.
@@ -20,10 +32,10 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-navy/95 backdrop-blur supports-[backdrop-filter]:bg-navy/85">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-        <a
-          href="#top"
+        <Link
+          href="/"
           className="flex shrink-0 items-center gap-3"
-          aria-label={`${site.name} — back to top`}
+          aria-label={`${site.name} — home`}
         >
           {/* The logo PNG has an opaque #030E29 background, which matches
               bg-navy exactly, so it reads as a transparent crest here. */}
@@ -36,18 +48,18 @@ export default function Navbar() {
             className="h-12 w-auto sm:h-14"
           />
           <span className="sr-only">{site.name}</span>
-        </a>
+        </Link>
 
         <nav aria-label="Main" className="hidden md:block">
-          <ul className="flex items-center gap-8">
+          <ul className="flex items-center gap-6 lg:gap-8">
             {navLinks.map((link) => (
               <li key={link.href}>
-                <a
+                <Link
                   href={link.href}
                   className="text-sm font-semibold tracking-wide text-cream/85 uppercase transition-colors hover:text-flame"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
             <li>
@@ -55,10 +67,22 @@ export default function Navbar() {
                 href={site.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-sm border border-orange px-4 py-2 text-sm font-semibold tracking-wide text-orange uppercase transition-colors hover:bg-orange hover:text-navy"
+                className="text-sm font-semibold tracking-wide text-cream/85 uppercase transition-colors hover:text-flame"
               >
                 Instagram
               </a>
+            </li>
+            <li>
+              {user ? (
+                <AccountMenu user={user} signOutSlot={signOutSlot} />
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded-sm border border-orange px-4 py-2 text-sm font-semibold tracking-wide text-orange uppercase transition-colors hover:bg-orange hover:text-navy"
+                >
+                  Sign In
+                </Link>
+              )}
             </li>
           </ul>
         </nav>
@@ -86,26 +110,59 @@ export default function Navbar() {
           <ul className="mx-auto max-w-7xl px-4 py-2 sm:px-6">
             {navLinks.map((link) => (
               <li key={link.href} className="border-b border-navy-line/60">
-                <a
+                <Link
                   href={link.href}
                   onClick={() => setOpen(false)}
                   className="block py-4 text-base font-semibold tracking-wide text-cream uppercase"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
-            <li>
+            <li className="border-b border-navy-line/60">
               <a
                 href={site.instagramUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
-                className="block py-4 text-base font-semibold tracking-wide text-orange uppercase"
+                className="block py-4 text-base font-semibold tracking-wide text-cream uppercase"
               >
                 Instagram
               </a>
             </li>
+
+            {user ? (
+              <>
+                <li className="border-b border-navy-line/60 py-4">
+                  <p className="truncate text-sm font-semibold text-cream">
+                    {user.displayName}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-cream/60">
+                    {user.email}
+                  </p>
+                </li>
+                <li className="border-b border-navy-line/60">
+                  <Link
+                    href="/account"
+                    onClick={() => setOpen(false)}
+                    className="block py-4 text-base font-semibold tracking-wide text-flame uppercase"
+                  >
+                    Account
+                  </Link>
+                </li>
+                <li className="py-4">{mobileSignOutSlot}</li>
+              </>
+            ) : (
+              <li className="py-4">
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-sm border border-orange px-4 py-3 text-center text-base font-semibold tracking-wide text-orange uppercase"
+                >
+                  Sign In
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>

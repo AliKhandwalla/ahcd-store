@@ -11,7 +11,8 @@ export const site = {
   instagramUrl: "https://instagram.com/alis_heat_crunch_delight",
 } as const;
 
+// Root-relative so they still work from /login and /account, not just from "/".
 export const navLinks = [
-  { href: "#shop", label: "Shop" },
-  { href: "#story", label: "Our Story" },
+  { href: "/#shop", label: "Shop" },
+  { href: "/#story", label: "Our Story" },
 ] as const;

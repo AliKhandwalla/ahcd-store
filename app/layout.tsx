@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { Anton, Inter } from "next/font/google";
+import Footer from "@/components/Footer";
+import Navbar from "@/components/Navbar";
+import SignOutButton from "@/components/SignOutButton";
+import { toNavUser } from "@/lib/auth-user";
+import { createClient } from "@/lib/supabase/server";
 import "./globals.css";
 
 const anton = Anton({
@@ -42,12 +47,34 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Only the three fields the navbar draws cross into client components.
+  const navUser = user ? toNavUser(user) : null;
+
   return (
     <html lang="en" className={`${anton.variable} ${inter.variable}`}>
-      <body>{children}</body>
+      {/* Flex column so short routes (/login, /account, auth errors) still push
+          the footer to the bottom instead of leaving a navy gap beneath it. */}
+      <body className="flex min-h-dvh flex-col">
+        <Navbar
+          user={navUser}
+          signOutSlot={
+            <SignOutButton className="text-sm font-semibold tracking-wide text-cream/80 uppercase transition-colors hover:text-orange" />
+          }
+          mobileSignOutSlot={
+            <SignOutButton className="block w-full rounded-sm border border-cream/25 px-4 py-3 text-center text-base font-semibold tracking-wide text-cream uppercase" />
+          }
+        />
+        <main className="flex-1">{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }
