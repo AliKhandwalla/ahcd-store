@@ -35,7 +35,7 @@ export default function FoodGallery() {
           />
         </div>
         <figcaption className="mx-auto max-w-7xl px-4 pt-3 text-xs tracking-wide text-ink/60 sm:px-6 sm:text-sm lg:px-8">
-          Noodles, eggs, sushi, cucumbers &mdash; spooned over at the table.
+          Noodles, eggs, sushi and cucumbers &mdash; each finished with AHCD.
         </figcaption>
       </figure>
 
