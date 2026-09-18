@@ -46,7 +46,7 @@ export default function FoodGallery() {
           <figure>
             <div className="relative aspect-square w-full overflow-hidden border border-ink/10">
               <Image
-                src="/images/achd-eggs-and-rice.png"
+                src="/images/ahcd-eggs-and-rice.png"
                 alt="Three fried eggs over steamed rice in a blue floral bowl, drizzled with Ali's Heat Crunch Delight chilli oil."
                 fill
                 sizes="(min-width: 640px) 42vw, 94vw"
