@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Hero() {
   return (
@@ -27,12 +28,14 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-            <a
-              href="#shop"
+            {/* Not "Shop Now": online ordering isn't open, so the CTA must not
+                imply anything can be bought here. */}
+            <Link
+              href="/products"
               className="inline-flex items-center justify-center rounded-sm bg-orange px-8 py-4 text-base font-bold tracking-wide text-navy uppercase transition-colors hover:bg-flame"
             >
-              Shop Now
-            </a>
+              Explore Products
+            </Link>
             <a
               href="#story"
               className="group inline-flex items-center justify-center gap-2 rounded-sm border border-cream/25 px-8 py-4 text-base font-bold tracking-wide text-cream uppercase transition-colors hover:border-flame hover:text-flame"

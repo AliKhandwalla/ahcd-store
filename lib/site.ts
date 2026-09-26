@@ -13,7 +13,7 @@ export const site = {
 
 // Root-relative so they still work from /login and /account, not just from "/".
 export const navLinks = [
-  { href: "/#shop", label: "Shop" },
+  { href: "/products", label: "Products" },
   { href: "/#story", label: "Our Story" },
   { href: "/updates", label: "Updates" },
 ] as const;

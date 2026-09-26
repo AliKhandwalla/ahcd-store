@@ -1,5 +1,7 @@
 import Image from "next/image";
-import { site } from "@/lib/site";
+import Link from "next/link";
+import OrderingNotice from "@/components/products/OrderingNotice";
+import ProductHighlights from "@/components/products/ProductHighlights";
 
 export default function ProductSection() {
   return (
@@ -33,28 +35,27 @@ export default function ProductSection() {
             go on top of the food you already cook.
           </p>
 
-          <div className="mt-8 border-l-4 border-orange bg-white p-5 shadow-sm sm:p-6">
-            <p className="display-hed text-2xl text-navy sm:text-3xl">
-              Online ordering coming soon
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-ink/75 sm:text-base">
-              The shop isn&rsquo;t open yet. Until it is, follow along on
-              Instagram for new batches and updates.
-            </p>
-            <a
-              href={site.instagramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 inline-flex items-center gap-2 rounded-sm bg-navy px-6 py-3.5 text-sm font-bold tracking-wide text-cream uppercase transition-colors hover:bg-orange hover:text-navy"
+          <p className="mt-5 text-base text-ink/80 sm:text-lg">
+            <Link
+              href="/products/original"
+              className="font-bold text-orange-deep underline underline-offset-8 transition-colors hover:text-orange"
             >
-              Follow on Instagram
-              <span aria-hidden="true">&rarr;</span>
-            </a>
-            <p className="mt-3 text-xs tracking-wide text-ink/55 sm:text-sm">
-              {site.instagramHandle}
-            </p>
+              See product details &rarr;
+            </Link>
+          </p>
+
+          {/* Shared with /products and every detail page, so the wording can
+              never drift between them. */}
+          <div className="mt-8">
+            <OrderingNotice />
           </div>
         </div>
+      </div>
+
+      {/* Compact pointer to the rest of the range — deliberately not a second
+          copy of /products. */}
+      <div className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 sm:pb-20 lg:px-8">
+        <ProductHighlights />
       </div>
     </section>
   );
