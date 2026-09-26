@@ -14,6 +14,7 @@ const adminNav = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/updates", label: "Updates" },
+  { href: "/admin/newsletter", label: "Newsletter" },
 ];
 
 /**

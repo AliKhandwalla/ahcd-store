@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { navLinks, site } from "@/lib/site";
 
 export default function Footer() {
@@ -43,9 +44,17 @@ export default function Footer() {
           </nav>
         </div>
 
-        <p className="mt-10 border-t border-navy-line pt-6 text-xs text-cream/50 sm:text-sm">
-          &copy; {new Date().getFullYear()} {site.name}
-        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-navy-line pt-6">
+          <p className="text-xs text-cream/50 sm:text-sm">
+            &copy; {new Date().getFullYear()} {site.name}
+          </p>
+          <Link
+            href="/privacy"
+            className="text-xs text-cream/50 underline underline-offset-4 transition-colors hover:text-flame sm:text-sm"
+          >
+            Privacy
+          </Link>
+        </div>
       </div>
     </footer>
   );

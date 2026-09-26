@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import NewsletterSignup from "@/components/newsletter/NewsletterSignup";
 import CategoryFilter from "@/components/updates/CategoryFilter";
 import FeaturedUpdate from "@/components/updates/FeaturedUpdate";
 import UpdateCard from "@/components/updates/UpdateCard";
@@ -70,6 +71,10 @@ export default async function UpdatesPage({
             ))}
           </div>
         )}
+
+        {/* One compact signup below the archive. Deliberately not in the
+            footer as well, so the same form doesn't repeat on every screen. */}
+        <NewsletterSignup compact />
       </div>
     </section>
   );

@@ -50,6 +50,14 @@ in Houston local time, and one update may be featured. Drafts are visible only t
 administrator. Published updates appear automatically at `/updates` and at a permanent
 per-update URL, rendered through one consistent template.
 
+**Newsletter.** A double opt-in signup on the homepage and the Updates page. Visitors
+give an email address and explicit consent, receive a confirmation link that expires in
+24 hours and works once, and only become subscribers after clicking it. Resend is
+authoritative for subscription and unsubscribe status; Supabase holds only unconfirmed
+requests, which are deleted at confirmation. The admin can preview any published Update
+as a branded email and send it to themselves. **Broadcasting to subscribers is not
+implemented.**
+
 **Product management.** Products are stored in Supabase and edited at `/admin/products`:
 names, copy, prices, photographs with alt text, display order, informational details such
 as T-shirt sizes, and a published / hidden / archived visibility. Changes appear on the
@@ -155,6 +163,11 @@ The site is then available at <http://localhost:3000>.
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase publishable key |
 | `ADMIN_EMAIL` | **No** | The email address permitted to access `/admin` |
+| `RESEND_API_KEY` | **No** | Resend key with `sending_access`. Sends confirmation and admin test email |
+| `RESEND_FROM_EMAIL` | **No** | Verified sending identity, e.g. `Brand <newsletter@mail.example.com>` |
+| `RESEND_REPLY_TO` | **No** | Reply address, also published in the privacy notice |
+| `RESEND_CONTACTS_API_KEY` | **No** | Resend key with `full_access`. Required for subscriber management |
+| `NEWSLETTER_ENABLED` | **No** | Optional kill switch. Only the literal `false` disables signups |
 
 The two `NEXT_PUBLIC_` values are compiled into the client bundle by design. The
 publishable key is intended to be public; access control is enforced by Row Level
@@ -163,7 +176,22 @@ Security, not by concealing it.
 `ADMIN_EMAIL` must **not** carry the `NEXT_PUBLIC_` prefix. It is read exclusively on the
 server, and an unset value denies access to everyone rather than granting it to anyone.
 
-No secret or service-role key is used anywhere in this project.
+No Supabase secret or service-role key is used anywhere in this project.
+
+### Why the newsletter needs two Resend keys
+
+Resend API keys have exactly two permission levels — `sending_access` and
+`full_access` — with no contacts-only scope. A sending key genuinely cannot manage
+contacts; the API replies *"This API key is restricted to only send emails"*.
+
+So the project uses both: `RESEND_API_KEY` (`sending_access`) for the confirmation and
+test emails, and `RESEND_CONTACTS_API_KEY` (`full_access`) for creating and counting
+subscribers. Splitting them keeps the key exercised on every public signup at least
+privilege; the powerful key is only used at confirmation time and by the admin dashboard.
+
+**Public signups stay disabled until the full-access key is set.** Without it a visitor
+could confirm and still not become a subscriber, which is worse than saying signups
+aren't open yet.
 
 ## Project structure
 
