@@ -41,9 +41,17 @@ function extensionFor(file: File) {
 export default function ImageUploader({
   images,
   onChange,
+  bucket = IMAGE_BUCKET,
+  maxImages = MAX_IMAGES_PER_UPDATE,
 }: {
   images: EditorImage[];
   onChange: (next: EditorImage[]) => void;
+  /**
+   * Which private bucket to upload into. Updates and products each have their
+   * own; the defaults keep the Updates editor working unchanged.
+   */
+  bucket?: string;
+  maxImages?: number;
 }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(
@@ -64,10 +72,10 @@ export default function ImageUploader({
     setError(null);
 
     const files = Array.from(fileList);
-    const room = MAX_IMAGES_PER_UPDATE - images.length;
+    const room = maxImages - images.length;
 
     if (room <= 0) {
-      setError(`You can attach up to ${MAX_IMAGES_PER_UPDATE} images.`);
+      setError(`You can attach up to ${maxImages} images.`);
       return;
     }
 
@@ -96,7 +104,7 @@ export default function ImageUploader({
       const path = `tmp/${sessionRef.current}/${crypto.randomUUID()}.${extensionFor(file)}`;
 
       const { error: uploadError } = await supabase.storage
-        .from(IMAGE_BUCKET)
+        .from(bucket)
         .upload(path, file, { contentType: file.type, upsert: false });
 
       if (uploadError) {
@@ -105,7 +113,7 @@ export default function ImageUploader({
       }
 
       const { data: signed } = await supabase.storage
-        .from(IMAGE_BUCKET)
+        .from(bucket)
         .createSignedUrl(path, 60 * 60);
 
       const { width, height } = await readDimensions(file);
@@ -135,7 +143,7 @@ export default function ImageUploader({
     // Delete straight away so abandoning an image doesn't leave it behind.
     try {
       const supabase = createClient();
-      await supabase.storage.from(IMAGE_BUCKET).remove([target.storagePath]);
+      await supabase.storage.from(bucket).remove([target.storagePath]);
     } catch {
       // Orphan only — the row was never created, so nothing is broken.
     }
@@ -177,7 +185,7 @@ export default function ImageUploader({
       </div>
 
       <p className="mt-1 text-xs text-slate-500">
-        JPEG, PNG or WebP · up to 5 MB each · {MAX_IMAGES_PER_UPDATE} images max
+        JPEG, PNG or WebP · up to 5 MB each · {maxImages} images max
       </p>
 
       {error && (

@@ -36,7 +36,7 @@ function MetricCell({ metric }: { metric: Metric }) {
 }
 
 export default async function AdminDashboardPage() {
-  const { groups, recentUpdates } = await getAdminMetrics();
+  const { groups, recentUpdates, recentProducts } = await getAdminMetrics();
 
   return (
     <div>
@@ -60,6 +60,72 @@ export default async function AdminDashboardPage() {
           </section>
         ))}
       </div>
+
+      <section className="mt-8">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+            Products
+          </h2>
+          <Link
+            href="/admin/products"
+            className="text-sm font-medium text-blue hover:underline"
+          >
+            Manage products
+          </Link>
+        </div>
+
+        <div className="mt-2 overflow-x-auto border border-slate-200 bg-white">
+          <table className="w-full min-w-[32rem] text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-left">
+              <tr>
+                <th className="px-4 py-2 font-medium text-slate-600">Product</th>
+                <th className="px-4 py-2 font-medium text-slate-600">
+                  Visibility
+                </th>
+                <th className="px-4 py-2 font-medium text-slate-600">Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
+                    No products yet.{" "}
+                    <Link
+                      href="/admin/products/new"
+                      className="text-blue hover:underline"
+                    >
+                      Add the first one
+                    </Link>
+                    .
+                  </td>
+                </tr>
+              ) : (
+                recentProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className="border-b border-slate-100 last:border-0"
+                  >
+                    <td className="px-4 py-2">
+                      <Link
+                        href={`/admin/products/${product.id}/edit`}
+                        className="font-medium text-navy hover:underline"
+                      >
+                        {product.name}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 capitalize text-slate-600">
+                      {product.visibility}
+                    </td>
+                    <td className="px-4 py-2 text-slate-600 tabular-nums">
+                      {formatDate(product.updated_at)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="mt-8">
         <div className="flex items-center justify-between gap-4">

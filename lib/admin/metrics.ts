@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getProductStats } from "@/lib/products/admin-queries";
 import { createClient } from "@/lib/supabase/server";
 import type { UpdateRow } from "@/lib/updates/types";
 
@@ -9,7 +10,7 @@ export type Metric = {
   value: string;
   /** false renders "Not tracked yet" instead of a number. */
   tracked: boolean;
-  /** Which future milestone will supply this. Shown as a small hint. */
+  /** Which future system will supply this. Shown as a small hint. */
   pending?: string;
 };
 
@@ -18,17 +19,25 @@ export type MetricGroup = {
   metrics: Metric[];
 };
 
+export type RecentProduct = {
+  id: string;
+  name: string;
+  visibility: string;
+  updated_at: string;
+};
+
 export type AdminMetrics = {
   groups: MetricGroup[];
   recentUpdates: Pick<UpdateRow, "id" | "title" | "status" | "published_at">[];
+  recentProducts: RecentProduct[];
 };
 
 /**
  * Single source of truth for every dashboard number.
  *
- * Metrics that have no data source yet are marked `tracked: false` and carry a
- * note naming the milestone that will provide them. Nothing here fabricates a
- * value, and no placeholder literals are duplicated in components.
+ * Metrics with no data source yet are marked `tracked: false` and carry a note
+ * naming the system that will provide them. Nothing here fabricates a value,
+ * and an untracked metric never renders as a misleading zero.
  */
 const NOT_YET = {
   checkout: "Arrives with checkout and orders",
@@ -40,25 +49,38 @@ function untracked(label: string, pending: string): Metric {
   return { label, value: "—", tracked: false, pending };
 }
 
+function real(label: string, value: string | number): Metric {
+  return { label, value: String(value), tracked: true };
+}
+
 export async function getAdminMetrics(): Promise<AdminMetrics> {
   const supabase = await createClient();
 
-  // The only genuinely real numbers in this milestone. RLS grants the admin
-  // visibility of drafts as well as published updates.
-  const { data } = await supabase
-    .from("updates")
-    .select("id, title, status, published_at, updated_at")
-    .order("updated_at", { ascending: false });
+  // RLS grants the admin visibility of drafts as well as published updates.
+  const [{ data: updateData }, products] = await Promise.all([
+    supabase
+      .from("updates")
+      .select(
+        "id, title, status, category, published_at, updated_at, event_start_at, event_end_at",
+      )
+      .order("updated_at", { ascending: false }),
+    getProductStats(),
+  ]);
 
-  const rows = (data ?? []) as (UpdateRow & { updated_at: string })[];
+  const rows = (updateData ?? []) as (UpdateRow & { updated_at: string })[];
   const published = rows.filter((row) => row.status === "published");
   const drafts = rows.filter((row) => row.status === "draft");
 
-  const mostRecent = published
-    .slice()
-    .sort((a, b) =>
-      (b.published_at ?? "").localeCompare(a.published_at ?? ""),
-    )[0];
+  const now = Date.now();
+  const upcomingEvents = published.filter((row) => {
+    if (row.category !== "market-event") return false;
+    const reference = row.event_end_at ?? row.event_start_at;
+    return reference ? new Date(reference).getTime() >= now : false;
+  });
+
+  const latestAnnouncement = published
+    .filter((row) => row.category === "announcement")
+    .sort((a, b) => (b.published_at ?? "").localeCompare(a.published_at ?? ""))[0];
 
   return {
     groups: [
@@ -80,20 +102,26 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
         ],
       },
       {
-        title: "Conversion",
+        title: "Website",
         metrics: [
-          untracked("Site visitors", NOT_YET.traffic),
+          untracked("Visitors", NOT_YET.traffic),
           untracked("Product views", NOT_YET.traffic),
           untracked("Checkout starts", NOT_YET.checkout),
-          untracked("Completed orders", NOT_YET.checkout),
+          untracked("Completed online orders", NOT_YET.checkout),
           untracked("Conversion rate", NOT_YET.traffic),
         ],
       },
       {
         title: "Products",
         metrics: [
+          real("Total products", products.total),
+          real("Published products", products.published),
+          real(
+            "Hidden products",
+            products.hidden + products.archived,
+          ),
+          real("Updated in last 30 days", products.recentlyUpdated),
           untracked("Best-selling product", NOT_YET.checkout),
-          untracked("Units sold by product", NOT_YET.checkout),
         ],
       },
       {
@@ -102,24 +130,17 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
           untracked("Awaiting fulfilment", NOT_YET.fulfilment),
           untracked("Preparing", NOT_YET.fulfilment),
           untracked("Ready", NOT_YET.fulfilment),
-          untracked("Completed", NOT_YET.fulfilment),
+          untracked("Completed orders", NOT_YET.fulfilment),
         ],
       },
       {
         title: "Content",
         metrics: [
-          {
-            label: "Published updates",
-            value: String(published.length),
-            tracked: true,
-          },
-          { label: "Draft updates", value: String(drafts.length), tracked: true },
-          { label: "Total updates", value: String(rows.length), tracked: true },
-          {
-            label: "Most recent update",
-            value: mostRecent?.title ?? "None yet",
-            tracked: true,
-          },
+          real("Total updates", rows.length),
+          real("Published updates", published.length),
+          real("Draft updates", drafts.length),
+          real("Upcoming market events", upcomingEvents.length),
+          real("Most recent announcement", latestAnnouncement?.title ?? "None yet"),
         ],
       },
     ],
@@ -129,5 +150,6 @@ export async function getAdminMetrics(): Promise<AdminMetrics> {
       status: row.status,
       published_at: row.published_at,
     })),
+    recentProducts: products.recent,
   };
 }

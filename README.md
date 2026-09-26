@@ -44,9 +44,17 @@ content. Figures that have no data source yet are labelled explicitly rather tha
 populated with invented values.
 
 **Updates publishing.** A small content system for posting news. Each update has a title,
-body text, ordered images and a draft or published status. Drafts are visible only to the
+body text, ordered images, a category (market event, product launch or announcement) and a
+draft or published status. Market events carry optional date, time and venue details shown
+in Houston local time, and one update may be featured. Drafts are visible only to the
 administrator. Published updates appear automatically at `/updates` and at a permanent
 per-update URL, rendered through one consistent template.
+
+**Product management.** Products are stored in Supabase and edited at `/admin/products`:
+names, copy, prices, photographs with alt text, display order, informational details such
+as T-shirt sizes, and a published / hidden / archived visibility. Changes appear on the
+public site immediately, with no redeployment. Unpublished products can be previewed by
+the administrator before going live.
 
 Commerce functionality — payments, checkout, cart, orders and inventory — is not part of
 the current application.
@@ -102,6 +110,12 @@ Open the Supabase dashboard, go to **SQL Editor**, and run the contents of
 [`supabase/schema.sql`](supabase/schema.sql). The script is idempotent and safe to re-run.
 It creates the tables, indexes and triggers, provisions the private storage bucket, and
 applies every Row Level Security policy.
+
+Then run each file in [`supabase/migrations/`](supabase/migrations) in filename order.
+These are additive and idempotent — they add columns, policies and tables to an existing
+database without touching its rows, and re-running one is a no-op. An existing production
+database needs the migrations; a brand-new one gets the same result from `schema.sql`
+plus the migrations.
 
 The administrator's email address is written into the `is_ahcd_admin()` function in that
 script. It must match the `ADMIN_EMAIL` environment variable exactly; if the two diverge,
@@ -248,6 +262,33 @@ produce them.
 
 **`update_images`** — `id`, `update_id`, `storage_path`, `alt_text`, `sort_order`,
 `width`, `height`, `created_at`. Deleting an update cascades to its image records.
+
+**`products`** — `id`, `slug`, `name`, `summary`, `description`, `about`, `price_cents`,
+`currency`, `visibility` (`published`, `hidden` or `archived`), `sort_order`,
+`media_padding`, `details` (JSONB), `created_at`, `updated_at`.
+
+**`product_images`** — `id`, `product_id`, `source`, `path`, `alt_text`, `sort_order`,
+`width`, `height`, `created_at`. Deleting a product cascades to its image records.
+
+`product_images.source` distinguishes the two kinds of photograph. `local` means a file
+committed to `public/images` and referenced by path — the three original product photos
+are stored this way and are never re-uploaded or deleted. `storage` means an object in the
+private `product-images` bucket, uploaded through the admin and served via a signed URL.
+
+### The Supabase / Square boundary
+
+Supabase owns **website editorial content**: slug, name, summary, description, the
+"what it's like" paragraph, images, alt text, display order, visibility, and informational
+details such as T-shirt sizes.
+
+Square, if it is connected later, would own **commercial data**: price, SKU, inventory and
+tax.
+
+`products.price_cents` is the single field that would migrate. It is stored as integer
+minor units — the same shape Square uses — and is read only through `formatPrice()`, so
+handing pricing over means changing where that one value comes from rather than reworking
+the interface. Do not add a second price column or cache Square prices in Supabase, or the
+two systems will disagree. **No Square code exists in this project.**
 
 Image dimensions are captured in the browser at upload time so that `next/image` can
 reserve the correct aspect ratio. This is what allows each image to render at its natural

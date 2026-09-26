@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 
 const adminNav = [
   { href: "/admin", label: "Dashboard" },
+  { href: "/admin/products", label: "Products" },
   { href: "/admin/updates", label: "Updates" },
 ];
 
@@ -51,7 +52,7 @@ export default async function AdminLayout({
               href="/"
               className="text-sm font-medium text-white/75 transition-colors hover:text-flame"
             >
-              View site
+              View website
             </Link>
           </nav>
           <span className="ml-auto hidden text-xs text-white/50 sm:block">
