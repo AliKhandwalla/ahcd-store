@@ -1,12 +1,39 @@
 export const UPDATE_STATUSES = ["draft", "published"] as const;
 export type UpdateStatus = (typeof UPDATE_STATUSES)[number];
 
+export const UPDATE_CATEGORIES = [
+  "market-event",
+  "product-launch",
+  "announcement",
+] as const;
+export type UpdateCategory = (typeof UPDATE_CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<UpdateCategory, string> = {
+  "market-event": "Market Event",
+  "product-launch": "Product Launch",
+  announcement: "Announcement",
+};
+
+/** Matches the column default in the migration. */
+export const DEFAULT_CATEGORY: UpdateCategory = "announcement";
+
+export function isUpdateCategory(value: unknown): value is UpdateCategory {
+  return UPDATE_CATEGORIES.includes(value as UpdateCategory);
+}
+
 export type UpdateRow = {
   id: string;
   title: string;
   slug: string;
   description: string;
   status: UpdateStatus;
+  category: UpdateCategory;
+  /** Event fields are only meaningful when category is "market-event". */
+  event_start_at: string | null;
+  event_end_at: string | null;
+  venue_name: string | null;
+  venue_address: string | null;
+  is_featured: boolean;
   created_at: string;
   updated_at: string;
   published_at: string | null;

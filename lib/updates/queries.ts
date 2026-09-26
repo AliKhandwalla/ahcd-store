@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { isEventExpired } from "@/lib/updates/time";
 import {
   IMAGE_BUCKET,
   SIGNED_URL_TTL_SECONDS,
   type AdminUpdateSummary,
   type SignedImage,
+  type UpdateCategory,
   type UpdateImageRow,
   type UpdateRow,
   type UpdateWithImages,
@@ -55,7 +57,10 @@ async function signImages(
 }
 
 /** Published updates, newest first. Used by /updates and the homepage strip. */
-export async function listPublishedUpdates(limit?: number) {
+export async function listPublishedUpdates(
+  limit?: number,
+  category?: UpdateCategory,
+) {
   const supabase = await createClient();
 
   // RLS already hides drafts; the explicit filter is defence in depth.
@@ -64,6 +69,9 @@ export async function listPublishedUpdates(limit?: number) {
     .select("*")
     .eq("status", "published")
     .order("published_at", { ascending: false });
+
+  // Chronological order is never disturbed — this only narrows the set.
+  if (category) query = query.eq("category", category);
 
   if (limit) query = query.limit(limit);
 
@@ -119,6 +127,63 @@ export async function getPublishedUpdateBySlug(
 
   const rows = (imageRows ?? []) as UpdateImageRow[];
   return { ...update, images: await signImages(supabase, rows) };
+}
+
+/**
+ * The featured update, if there is one worth promoting right now.
+ *
+ * Returns null for an expired market event: a past event stops being promoted
+ * but stays published and stays in the archive. Nothing is hidden or deleted.
+ */
+export async function getFeaturedUpdate(): Promise<UpdateWithImages | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("updates")
+    .select("*")
+    .eq("status", "published")
+    .eq("is_featured", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  const update = data as UpdateRow;
+
+  if (isEventExpired(update.event_start_at, update.event_end_at)) return null;
+
+  const { data: imageRows } = await supabase
+    .from("update_images")
+    .select("*")
+    .eq("update_id", update.id)
+    .order("sort_order", { ascending: true });
+
+  const rows = (imageRows ?? []) as UpdateImageRow[];
+  return { ...update, images: await signImages(supabase, rows) };
+}
+
+/** Storage path of a published update's first image, for the sharing route. */
+export async function getShareImagePath(slug: string): Promise<string | null> {
+  const supabase = await createClient();
+
+  // Goes through the same published-only filter, so a draft is simply not
+  // found and its images can never surface in a social preview.
+  const { data: update } = await supabase
+    .from("updates")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+
+  if (!update) return null;
+
+  const { data } = await supabase
+    .from("update_images")
+    .select("storage_path")
+    .eq("update_id", (update as { id: string }).id)
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return (data as { storage_path: string } | null)?.storage_path ?? null;
 }
 
 // --- Admin-side reads. RLS grants these only to the admin. ------------------

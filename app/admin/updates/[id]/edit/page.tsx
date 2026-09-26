@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import UpdateForm from "@/components/admin/UpdateForm";
 import { saveUpdate } from "@/lib/updates/actions";
 import { getUpdateForEdit } from "@/lib/updates/queries";
+import { utcToZonedLocalInput } from "@/lib/updates/time";
 
 export default async function EditUpdatePage({
   params,
@@ -39,6 +40,14 @@ export default async function EditUpdatePage({
             slug: update.slug,
             description: update.description,
             status: update.status,
+            category: update.category,
+            // Stored UTC is converted back to Houston wall-clock for the
+            // datetime-local inputs, so what Ali typed is what he sees.
+            eventStartAt: utcToZonedLocalInput(update.event_start_at),
+            eventEndAt: utcToZonedLocalInput(update.event_end_at),
+            venueName: update.venue_name ?? "",
+            venueAddress: update.venue_address ?? "",
+            isFeatured: update.is_featured,
             images,
           }}
         />

@@ -5,11 +5,14 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin/auth";
 import { createClient } from "@/lib/supabase/server";
 import { slugCandidates } from "@/lib/updates/slug";
+import { zonedLocalToUtcISO } from "@/lib/updates/time";
 import {
   IMAGE_BUCKET,
   MAX_IMAGES_PER_UPDATE,
   UPDATE_STATUSES,
+  isUpdateCategory,
   type PendingImage,
+  type UpdateCategory,
   type UpdateStatus,
 } from "@/lib/updates/types";
 
@@ -21,8 +24,19 @@ type ParsedForm = {
   title: string;
   description: string;
   status: UpdateStatus;
+  category: UpdateCategory;
+  eventStartAt: string | null;
+  eventEndAt: string | null;
+  venueName: string | null;
+  venueAddress: string | null;
+  isFeatured: boolean;
   images: PendingImage[];
 };
+
+function emptyToNull(value: FormDataEntryValue | null) {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : text;
+}
 
 function parseForm(formData: FormData): ParsedForm | { error: string } {
   const title = String(formData.get("title") ?? "").trim();
@@ -35,6 +49,29 @@ function parseForm(formData: FormData): ParsedForm | { error: string } {
 
   if (!UPDATE_STATUSES.includes(rawStatus as UpdateStatus)) {
     return { error: "Pick either Draft or Published." };
+  }
+
+  const rawCategory = String(formData.get("category") ?? "");
+  if (!isUpdateCategory(rawCategory)) {
+    return { error: "Pick a category." };
+  }
+
+  // Event details only belong to market events. Anything else stores nulls, so
+  // re-categorising a post can never leave stale event data behind.
+  const isMarketEvent = rawCategory === "market-event";
+
+  const eventStartAt = isMarketEvent
+    ? zonedLocalToUtcISO(String(formData.get("eventStartAt") ?? ""))
+    : null;
+  const eventEndAt = isMarketEvent
+    ? zonedLocalToUtcISO(String(formData.get("eventEndAt") ?? ""))
+    : null;
+
+  if (eventEndAt && !eventStartAt) {
+    return { error: "Add a start time before an end time." };
+  }
+  if (eventStartAt && eventEndAt && eventEndAt < eventStartAt) {
+    return { error: "The event ends before it starts." };
   }
 
   let images: PendingImage[] = [];
@@ -61,7 +98,44 @@ function parseForm(formData: FormData): ParsedForm | { error: string } {
     return { error: "Those images couldn't be read. Try re-adding them." };
   }
 
-  return { title, description, status: rawStatus as UpdateStatus, images };
+  const status = rawStatus as UpdateStatus;
+
+  return {
+    title,
+    description,
+    status,
+    category: rawCategory,
+    eventStartAt,
+    eventEndAt,
+    venueName: isMarketEvent ? emptyToNull(formData.get("venueName")) : null,
+    venueAddress: isMarketEvent
+      ? emptyToNull(formData.get("venueAddress"))
+      : null,
+    // Only a published update can be promoted.
+    isFeatured: formData.get("isFeatured") === "on" && status === "published",
+    images,
+  };
+}
+
+/**
+ * Clears the featured flag everywhere except `keepId`.
+ *
+ * The database also enforces at-most-one via a partial unique index; doing it
+ * here means the admin can just tick the new post rather than having to
+ * un-tick the old one first.
+ */
+async function clearOtherFeatured(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  keepId: string | null,
+) {
+  let query = supabase
+    .from("updates")
+    .update({ is_featured: false })
+    .eq("is_featured", true);
+
+  if (keepId) query = query.neq("id", keepId);
+
+  await query;
 }
 
 /** Replaces an update's image rows with exactly what the editor submitted. */
@@ -113,6 +187,10 @@ export async function createUpdate(
   let createdSlug: string | null = null;
   let createdId: string | null = null;
 
+  // Featured is cleared from others first: the partial unique index would
+  // otherwise reject the insert while a previous featured post still exists.
+  if (parsed.isFeatured) await clearOtherFeatured(supabase, null);
+
   for (const candidate of slugCandidates(parsed.title)) {
     const { data, error } = await supabase
       .from("updates")
@@ -121,6 +199,12 @@ export async function createUpdate(
         slug: candidate,
         description: parsed.description,
         status: parsed.status,
+        category: parsed.category,
+        event_start_at: parsed.eventStartAt,
+        event_end_at: parsed.eventEndAt,
+        venue_name: parsed.venueName,
+        venue_address: parsed.venueAddress,
+        is_featured: parsed.isFeatured,
         published_at: publishedAt,
       })
       .select("id, slug")
@@ -176,12 +260,21 @@ export async function saveUpdate(
       ? ((existing.published_at as string | null) ?? new Date().toISOString())
       : (existing.published_at as string | null);
 
+  // Free the featured slot before claiming it, or the unique index rejects us.
+  if (parsed.isFeatured) await clearOtherFeatured(supabase, id);
+
   const { error } = await supabase
     .from("updates")
     .update({
       title: parsed.title,
       description: parsed.description,
       status: parsed.status,
+      category: parsed.category,
+      event_start_at: parsed.eventStartAt,
+      event_end_at: parsed.eventEndAt,
+      venue_name: parsed.venueName,
+      venue_address: parsed.venueAddress,
+      is_featured: parsed.isFeatured,
       published_at: publishedAt,
     })
     .eq("id", id);

@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import CategoryBadge from "@/components/updates/CategoryBadge";
+import { formatEventRange, isEventExpired } from "@/lib/updates/time";
 import type { UpdateWithImages } from "@/lib/updates/types";
 
 export function formatPublished(value: string | null) {
@@ -19,6 +21,12 @@ export function excerpt(text: string, limit = 180) {
 
 export default function UpdateCard({ update }: { update: UpdateWithImages }) {
   const cover = update.images[0];
+  const isEvent = update.category === "market-event";
+  const when = isEvent
+    ? formatEventRange(update.event_start_at, update.event_end_at)
+    : "";
+  const past =
+    isEvent && isEventExpired(update.event_start_at, update.event_end_at);
 
   return (
     <article className="border border-navy-line bg-navy-soft">
@@ -41,8 +49,10 @@ export default function UpdateCard({ update }: { update: UpdateWithImages }) {
       )}
 
       <div className="p-5 sm:p-6">
+        <CategoryBadge category={update.category} past={past} />
+
         {update.published_at && (
-          <p className="text-xs font-bold tracking-[0.18em] text-orange uppercase">
+          <p className="mt-3 text-xs font-bold tracking-[0.18em] text-orange uppercase">
             {formatPublished(update.published_at)}
           </p>
         )}
@@ -55,6 +65,10 @@ export default function UpdateCard({ update }: { update: UpdateWithImages }) {
             {update.title}
           </Link>
         </h2>
+
+        {when && (
+          <p className="mt-3 text-sm font-semibold text-blue">{when}</p>
+        )}
 
         <p className="mt-3 text-sm leading-relaxed text-cream/75 sm:text-base">
           {excerpt(update.description)}

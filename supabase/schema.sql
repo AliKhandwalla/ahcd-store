@@ -16,15 +16,31 @@
 -- ----------------------------------------------------------------------------
 
 create table if not exists public.updates (
-  id           uuid primary key default gen_random_uuid(),
-  title        text        not null,
-  slug         text        not null unique,
-  description  text        not null,
-  status       text        not null default 'draft'
-                           check (status in ('draft', 'published')),
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now(),
-  published_at timestamptz
+  id             uuid primary key default gen_random_uuid(),
+  title          text        not null,
+  slug           text        not null unique,
+  description    text        not null,
+  status         text        not null default 'draft'
+                             check (status in ('draft', 'published')),
+  -- News & events (see supabase/migrations/20260925_news_and_events.sql, which
+  -- adds these to an existing database without touching its rows).
+  category       text        not null default 'announcement'
+                             check (category in ('market-event',
+                                                 'product-launch',
+                                                 'announcement')),
+  event_start_at timestamptz,
+  event_end_at   timestamptz,
+  venue_name     text,
+  venue_address  text,
+  is_featured    boolean     not null default false,
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  published_at   timestamptz,
+  constraint updates_event_range_check check (
+    event_end_at is null
+    or event_start_at is null
+    or event_end_at >= event_start_at
+  )
 );
 
 create table if not exists public.update_images (
@@ -45,6 +61,18 @@ create index if not exists updates_status_published_at_idx
 
 create index if not exists update_images_update_id_sort_idx
   on public.update_images (update_id, sort_order);
+
+create index if not exists updates_category_published_idx
+  on public.updates (category, published_at desc);
+
+create index if not exists updates_event_start_idx
+  on public.updates (event_start_at)
+  where event_start_at is not null;
+
+-- At most one featured update, guaranteed by the database rather than the UI.
+create unique index if not exists updates_single_featured_idx
+  on public.updates (is_featured)
+  where is_featured;
 
 -- Keep updated_at honest.
 create or replace function public.set_updated_at()

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import UpdateCard from "@/components/updates/UpdateCard";
-import { listPublishedUpdates } from "@/lib/updates/queries";
+import { getFeaturedUpdate, listPublishedUpdates } from "@/lib/updates/queries";
 import type { UpdateWithImages } from "@/lib/updates/types";
 
 /**
@@ -15,7 +15,20 @@ export default async function LatestUpdates() {
   let updates: UpdateWithImages[] = [];
 
   try {
-    updates = await listPublishedUpdates(3);
+    // Pull one extra so pinning the featured post still leaves three cards.
+    const [latest, featured] = await Promise.all([
+      listPublishedUpdates(4),
+      getFeaturedUpdate(),
+    ]);
+
+    // Featured takes the first slot; everything else stays chronological.
+    // getFeaturedUpdate() already excludes drafts and expired events, so a
+    // market event that has passed quietly drops back into date order.
+    updates = featured
+      ? [featured, ...latest.filter((update) => update.id !== featured.id)]
+      : latest;
+
+    updates = updates.slice(0, 3);
   } catch {
     return null;
   }
