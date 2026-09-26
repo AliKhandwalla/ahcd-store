@@ -41,6 +41,13 @@ export type Product = {
   /** One short line used on cards and in metadata. */
   summary: string;
   description: string;
+  /**
+   * A short, plain-spoken paragraph shown under "What it's like" on the detail
+   * page. Written to describe how AHCD actually sells — small batches, in
+   * person — and must stay strictly factual: no ingredients, jar sizes, heat
+   * ratings, nutrition or availability claims.
+   */
+  about: string;
   priceCents: number;
   currency: "USD";
   /** null renders the branded placeholder — see the Mediterranean entry. */
@@ -56,16 +63,18 @@ const PRODUCTS: Product[] = [
     summary: "The original — bold heat, serious crunch.",
     description:
       "The original AHCD homemade chilli oil — bold heat, serious crunch, and made in small batches.",
+    about:
+      "This is the jar AHCD started with. Ali makes it at home in small batches and fills and labels the jars by hand, so no two runs are ever quite identical. It's built to go on top of food you're already cooking — eggs, rice, noodles, whatever's in front of you.",
     priceCents: 1200,
     currency: "USD",
     image: {
-      src: "/images/ahcd-product-jar.jpg",
-      width: 1280,
-      height: 617,
-      alt: "A jar of Ali's Heat Crunch Delight chilli oil beside its lid, which shows the AHCD logo label.",
+      src: "/images/ahcd-jar.png",
+      width: 1254,
+      height: 1254,
+      alt: "A jar of Ali's Heat Crunch Delight chilli oil, filled with chilli in oil and labelled with the AHCD crest.",
     },
-    // Wide 2.07:1 photo. Kept tight so it fills as much of the box as possible
-    // rather than floating in the middle of it.
+    // Square 1:1, so it sits comfortably in the media box with only light
+    // framing. Kept tight so the jar reads large on a card.
     mediaPadding: "tight",
     details: [],
   },
@@ -75,6 +84,8 @@ const PRODUCTS: Product[] = [
     summary: "Our signature heat and crunch, Mediterranean-inspired.",
     description:
       "A Mediterranean-inspired take on AHCD, combining our signature heat and crunch with Mediterranean flavors.",
+    about:
+      "A newer addition to the range, taking the same heat and crunch in a Mediterranean-inspired direction. Made the same way as the original — small batches, jarred by hand. We haven't photographed this one yet, so the crest is standing in until we do.",
     priceCents: 1500,
     currency: "USD",
     // TO ADD THE REAL PHOTO: drop the file into public/images/ and replace null
@@ -96,6 +107,8 @@ const PRODUCTS: Product[] = [
     summary: "Official AHCD T-shirt featuring the brand crest.",
     description:
       "Official Ali's Heat Crunch Delight T-shirt featuring the AHCD brand.",
+    about:
+      "The same crest that's on every jar, printed on a black tee. It's for anyone who wants to carry a bit of AHCD around with them, and it's how you'll spot us at a market. Available in Small, Medium, Large and XL.",
     priceCents: 2500,
     currency: "USD",
     image: {

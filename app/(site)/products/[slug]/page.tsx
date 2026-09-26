@@ -100,6 +100,15 @@ export default async function ProductPage({
               {product.description}
             </p>
 
+            <div className="mt-8 border-t border-navy-line pt-6">
+              <h2 className="text-xs font-bold tracking-[0.22em] text-orange uppercase sm:text-sm">
+                What it&rsquo;s like
+              </h2>
+              <p className="mt-3 max-w-prose text-base leading-relaxed text-cream/75">
+                {product.about}
+              </p>
+            </div>
+
             {product.details.length > 0 && (
               <dl className="mt-8 border-t border-navy-line pt-6">
                 {product.details.map((detail) => (

@@ -52,6 +52,12 @@ export default async function ProductHighlights() {
                   {formatPrice(product)}{" "}
                   <span className="text-ink/50">in person</span>
                 </p>
+                <span
+                  aria-hidden="true"
+                  className="mt-2 inline-flex items-center gap-1.5 text-[0.7rem] font-bold tracking-[0.14em] text-orange-deep uppercase transition-colors group-hover:text-orange"
+                >
+                  View details &rarr;
+                </span>
               </div>
             </Link>
           </li>
