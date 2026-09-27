@@ -27,7 +27,7 @@ export default function FoodGallery() {
       <figure className="mt-10 sm:mt-12">
         <div className="relative aspect-[1222/880] w-full sm:aspect-[16/9]">
           <Image
-            src="/images/ahcd-tikka-ramen.png"
+            src="/images/ahcd-tikka-ramen.webp"
             alt="An overhead shot of two dishes: a noodle bowl topped with a fried egg, shredded chicken and chilli oil, beside a plate of sushi rolls and cucumber slices drizzled with chilli oil."
             fill
             sizes="100vw"
@@ -46,7 +46,7 @@ export default function FoodGallery() {
           <figure>
             <div className="relative aspect-square w-full overflow-hidden border border-ink/10">
               <Image
-                src="/images/ahcd-eggs-and-rice.png"
+                src="/images/ahcd-eggs-and-rice.webp"
                 alt="Three fried eggs over steamed rice in a blue floral bowl, drizzled with Ali's Heat Crunch Delight chilli oil."
                 fill
                 sizes="(min-width: 640px) 42vw, 94vw"
@@ -63,7 +63,7 @@ export default function FoodGallery() {
           <figure>
             <div className="relative aspect-[4/3] w-full overflow-hidden border border-ink/10">
               <Image
-                src="/images/ahcd-avocado-egg-toast.png"
+                src="/images/ahcd-avocado-egg-toast.webp"
                 alt="A plate of toast topped with microgreens, a fried egg and a spoonful of Ali's Heat Crunch Delight, with a jar of the chilli oil beside the plate."
                 fill
                 sizes="(min-width: 640px) 42vw, 94vw"

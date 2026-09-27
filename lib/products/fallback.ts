@@ -24,7 +24,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     priceCents: 1200,
     currency: "USD",
     image: {
-      src: "/images/ahcd-jar.png",
+      src: "/images/ahcd-jar.webp",
       width: 1254,
       height: 1254,
       alt: "A jar of Ali's Heat Crunch Delight chilli oil, filled with chilli in oil and labelled with the AHCD crest.",
@@ -57,7 +57,7 @@ export const FALLBACK_PRODUCTS: Product[] = [
     priceCents: 2500,
     currency: "USD",
     image: {
-      src: "/images/ahcd-shirt.png",
+      src: "/images/ahcd-shirt.webp",
       width: 1086,
       height: 1448,
       alt: "A black Ali's Heat Crunch Delight T-shirt printed with the AHCD crest and the words Homemade Chilli Oil.",
