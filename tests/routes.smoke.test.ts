@@ -111,3 +111,75 @@ describe("images referenced by the pages actually exist", { skip }, () => {
     }
   });
 });
+
+describe("security headers", { skip }, () => {
+  it("sends the headers that were missing before Stage 4", async () => {
+    const { headers } = await get("/");
+    const expected: Record<string, RegExp> = {
+      "content-security-policy": /default-src 'self'/,
+      "x-frame-options": /DENY/i,
+      "x-content-type-options": /nosniff/i,
+      "referrer-policy": /strict-origin-when-cross-origin/i,
+      "permissions-policy": /camera=\(\)/i,
+    };
+    for (const [name, pattern] of Object.entries(expected)) {
+      const value = headers.get(name);
+      assert.ok(value, `missing header ${name}`);
+      assert.match(value, pattern, `unexpected ${name}: ${value}`);
+    }
+
+    // HSTS is applied by the hosting platform at the TLS edge, not by the
+    // app, and means nothing over plain HTTP — so require it only when the
+    // target is actually https.
+    if (base?.startsWith("https://")) {
+      const hsts = headers.get("strict-transport-security");
+      assert.ok(hsts, "missing strict-transport-security over https");
+      assert.match(hsts, /max-age=\d+/i);
+    }
+  });
+
+  it("locks the policy down where it matters", async () => {
+    const csp = (await get("/")).headers.get("content-security-policy") ?? "";
+    // Framing, plugins, <base> hijacking and off-site form posts are all
+    // blocked outright; these need no nonce and have no legitimate use here.
+    assert.match(csp, /frame-ancestors 'none'/);
+    assert.match(csp, /object-src 'none'/);
+    assert.match(csp, /base-uri 'self'/);
+    assert.match(csp, /form-action 'self'/);
+    // Script must not be loadable from arbitrary origins.
+    assert.ok(!/script-src[^;]*\*/.test(csp), `script-src must not allow *: ${csp}`);
+  });
+
+  it("no longer advertises the framework", async () => {
+    assert.equal((await get("/")).headers.get("x-powered-by"), null);
+  });
+});
+
+describe("crawler directives", { skip }, () => {
+  it("serves robots.txt pointing at the sitemap", async () => {
+    const { status, body } = await get("/robots.txt");
+    assert.equal(status, 200);
+    assert.match(body, /Sitemap:\s*https?:\/\/\S+\/sitemap\.xml/i);
+    for (const path of ["/admin", "/account", "/newsletter/confirm"]) {
+      assert.ok(body.includes(path), `robots.txt should disallow ${path}`);
+    }
+  });
+
+  it("serves a sitemap listing only public pages", async () => {
+    const { status, body } = await get("/sitemap.xml");
+    assert.equal(status, 200);
+    assert.match(body, /<urlset/);
+    assert.match(body, /\/products\/original/);
+    // Nothing private may appear.
+    for (const path of ["/admin", "/account", "/auth/", "/newsletter/confirm"]) {
+      assert.ok(!body.includes(path), `sitemap must not list ${path}`);
+    }
+  });
+
+  it("keeps signed-in pages out of the index", async () => {
+    for (const path of ["/account", "/newsletter/confirm"]) {
+      const { body } = await get(path);
+      assert.match(body, /noindex/, `${path} should be noindex`);
+    }
+  });
+});

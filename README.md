@@ -207,6 +207,28 @@ Node's built-in test runner, no test dependency. Four suites live in [`tests/`](
   SMOKE_BASE_URL=http://localhost:3000 npm test
   ```
 
+### Security headers
+
+[`next.config.ts`](next.config.ts) sends a Content Security Policy plus
+`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` and
+`Permissions-Policy`, and disables `X-Powered-By`. HSTS comes from the hosting
+platform at the TLS edge.
+
+The CSP allows `'unsafe-inline'` for scripts. Next.js injects inline bootstrap and
+streaming scripts, and the strict alternative is a per-request nonce, which needs
+middleware. The policy therefore does not stop injected inline script — it does block
+script from other origins, framing, plugins, `<base>` hijacking and off-site form
+posts. The site renders no user-supplied HTML, so the residual surface is small. Moving
+to nonces is the next hardening step.
+
+### Crawling
+
+[`app/robots.ts`](app/robots.ts) and [`app/sitemap.ts`](app/sitemap.ts) generate
+`/robots.txt` and `/sitemap.xml`. The sitemap lists only published products and
+updates, read from the database, so nothing draft or hidden can appear. `/admin`,
+`/account`, `/auth/` and `/newsletter/confirm` are disallowed and also send
+`noindex` in their own metadata.
+
 ## Environment variables
 
 | Variable | Exposed to browser | Purpose |

@@ -7,6 +7,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Your account — Ali's Heat Crunch Delight",
+  // A signed-in page has nothing to offer a search engine, and indexing it
+  // would surface the URL in results. /admin and /newsletter/confirm already
+  // do this; this page was the one that did not.
+  robots: { index: false, follow: false },
 };
 
 export default async function AccountPage({
