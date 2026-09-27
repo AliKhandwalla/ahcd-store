@@ -25,11 +25,16 @@ import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const optedIn = process.env.NEWSLETTER_RPC_TESTS === "1";
+// Creating a pending row now requires the server secret, so these tests need
+// it too. Without it there is no way to set up a fixture.
+const secret = process.env.NEWSLETTER_RPC_SECRET ?? null;
 const skip = !optedIn
   ? "set NEWSLETTER_RPC_TESTS=1 to run live RPC tests"
   : !url || !key
     ? "NEXT_PUBLIC_SUPABASE_URL / _PUBLISHABLE_KEY not set"
-    : false;
+    : !secret
+      ? "NEWSLETTER_RPC_SECRET not set — cannot create test fixtures"
+      : false;
 
 const supabase = url && key ? createClient(url, key) : null;
 
@@ -55,6 +60,7 @@ async function request(
     p_token_hash: f.tokenHash,
     p_consent_version: "test",
     p_expires_at: expiresAt,
+    p_app_secret: secret,
   });
   assert.equal(error, null, `newsletter_request failed: ${error?.message}`);
   return data;

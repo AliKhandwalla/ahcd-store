@@ -1,7 +1,12 @@
 import ProductForm from "@/components/admin/ProductForm";
 import { createProduct } from "@/lib/products/actions";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
-export default function NewProductPage() {
+export default async function NewProductPage() {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   return (
     <div>
       <h1 className="text-lg font-bold text-navy">New product</h1>

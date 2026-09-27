@@ -3,6 +3,7 @@ import TestSendButton from "@/components/admin/TestSendButton";
 import { sendingConfig } from "@/lib/newsletter/config";
 import { renderUpdateEmail } from "@/lib/newsletter/update-email";
 import { getPublishedUpdateBySlug, listAllUpdates } from "@/lib/updates/queries";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 /**
  * Newsletter preview, plus an admin-only test send.
@@ -16,6 +17,10 @@ export default async function ComposePage({
 }: {
   searchParams: Promise<{ update?: string }>;
 }) {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { update: updateId } = await searchParams;
 
   const all = await listAllUpdates();

@@ -60,3 +60,22 @@ export async function assertAdmin(): Promise<User> {
   }
   return gate.user;
 }
+
+/**
+ * Page-level gate for everything under /admin.
+ *
+ * The layout also checks, but a layout cannot protect a page: in the App
+ * Router the two render IN PARALLEL, so a redirect() in the layout does not
+ * stop the page component executing. Without this, an anonymous request to
+ * /admin/newsletter still ran the page's queries and their results were
+ * serialised into the redirect response.
+ *
+ * Row Level Security meant nothing private actually escaped, but relying on
+ * that alone would make every future admin figure one missing policy away
+ * from being public. Each page calls this first and renders nothing if it
+ * fails; the layout decides what the visitor sees instead.
+ */
+export async function adminPageAllowed() {
+  const gate = await requireAdmin();
+  return gate.ok;
+}

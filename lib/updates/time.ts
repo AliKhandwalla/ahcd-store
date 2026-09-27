@@ -58,6 +58,11 @@ export function zonedLocalToUtcISO(
 ): string | null {
   if (!local) return null;
 
+  // Check the shape before parsing. new Date() falls back to a lenient parser
+  // that turns "not-a-date:00Z" into 1 Jan 2000 rather than NaN, so relying on
+  // NaN alone would silently store a real-looking but wrong event date.
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(local)) return null;
+
   // Treat the wall-clock string as if it were UTC to get a first approximation.
   const naive = new Date(`${local}:00Z`);
   if (Number.isNaN(naive.getTime())) return null;

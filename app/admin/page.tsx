@@ -1,6 +1,7 @@
 import Link from "next/link";
 import StatusPill from "@/components/admin/StatusPill";
 import { getAdminMetrics, type Metric } from "@/lib/admin/metrics";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -36,6 +37,10 @@ function MetricCell({ metric }: { metric: Metric }) {
 }
 
 export default async function AdminDashboardPage() {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { groups, recentUpdates, recentProducts } = await getAdminMetrics();
 
   return (

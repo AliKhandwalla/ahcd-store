@@ -102,7 +102,29 @@ export function newsletterReadiness(): NewsletterReadiness {
     };
   }
 
+  // Without this the database refuses every signup, so the honest state is
+  // "not open" rather than a form that fails on submit.
+  if (!newsletterRpcSecret()) {
+    return {
+      ready: false,
+      reason:
+        "Signup protection is not configured (NEWSLETTER_RPC_SECRET). Run npm run newsletter:secret.",
+    };
+  }
+
   return { ready: true, from: sending.from, replyTo: sending.replyTo };
+}
+
+/**
+ * The shared secret that proves a newsletter_request call came from this
+ * server rather than from anyone holding the publishable key.
+ *
+ * The publishable key is in the client bundle by design, so it authenticates
+ * nothing. This does not reach the browser, which is what makes the signup
+ * RPC's rate limits meaningful instead of bypassable.
+ */
+export function newsletterRpcSecret() {
+  return value("NEWSLETTER_RPC_SECRET");
 }
 
 /** The published privacy contact, which is the verified reply-to address. */

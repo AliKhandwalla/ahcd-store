@@ -9,6 +9,7 @@ import {
   VISIBILITY_LABELS,
   isProductVisibility,
 } from "@/lib/products/types";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-GB", {
@@ -30,6 +31,10 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<{ visibility?: string }>;
 }) {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { visibility } = await searchParams;
   const active = isProductVisibility(visibility) ? visibility : null;
 

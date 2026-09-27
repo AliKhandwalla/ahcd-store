@@ -7,6 +7,7 @@ import {
   UPDATE_CATEGORIES,
   isUpdateCategory,
 } from "@/lib/updates/types";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 const FILTERS = [
   { key: "all", label: "All" },
@@ -37,6 +38,10 @@ export default async function AdminUpdatesPage({
 }: {
   searchParams: Promise<{ status?: string; category?: string }>;
 }) {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { status, category } = await searchParams;
   const active = FILTERS.some((f) => f.key === status) ? status! : "all";
   const activeCategory = isUpdateCategory(category) ? category : null;

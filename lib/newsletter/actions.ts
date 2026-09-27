@@ -4,6 +4,7 @@ import {
   CONFIRMATION_TTL_HOURS,
   CONSENT_VERSION,
   newsletterReadiness,
+  newsletterRpcSecret,
 } from "@/lib/newsletter/config";
 import { confirmationEmail } from "@/lib/newsletter/email";
 import { sendEmail } from "@/lib/newsletter/resend";
@@ -87,13 +88,17 @@ export async function subscribeToNewsletter(
   const supabase = await createClient();
 
   // Goes through the SECURITY DEFINER function; the table itself is
-  // unreadable and unwritable by this role. Throttling lives in the function
-  // so it can't be bypassed by calling the RPC directly.
+  // unreadable and unwritable by this role. Throttling and the signup caps
+  // live in the function rather than here, so they apply to every caller.
   const { data, error } = await supabase.rpc("newsletter_request", {
     p_email: email,
     p_token_hash: tokenHash,
     p_consent_version: CONSENT_VERSION,
     p_expires_at: expiresAt,
+    // Proves the call came from this server. Anyone can obtain the
+    // publishable key, so without this the checks above are bypassable by
+    // calling the RPC directly.
+    p_app_secret: newsletterRpcSecret(),
   });
 
   if (error) {

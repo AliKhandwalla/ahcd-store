@@ -123,11 +123,22 @@ Open the Supabase dashboard, go to **SQL Editor**, and run the contents of
 It creates the tables, indexes and triggers, provisions the private storage bucket, and
 applies every Row Level Security policy.
 
-Then run each file in [`supabase/migrations/`](supabase/migrations) in filename order.
-These are additive and idempotent — they add columns, policies and tables to an existing
-database without touching its rows, and re-running one is a no-op. An existing production
-database needs the migrations; a brand-new one gets the same result from `schema.sql`
-plus the migrations.
+`schema.sql` is the complete baseline: on an empty project it reproduces the current
+production schema on its own. An existing database instead takes the files in
+[`supabase/migrations/`](supabase/migrations) in filename order. These are additive and
+idempotent — they add columns, policies and tables without touching existing rows, and
+re-running one is a no-op.
+
+Then generate the newsletter signup secret, which is deliberately not in either file:
+
+```bash
+npm run newsletter:secret
+```
+
+It prints two things: a secret for `NEWSLETTER_RPC_SECRET` in the server environment, and
+a SQL statement storing only that secret's hash in `app_config`. Run both halves. Until
+you do, the signup function refuses every call and the form reports that signups are not
+open — which is the intended fail-closed behaviour, not a fault.
 
 The administrator's email address is written into the `is_ahcd_admin()` function in that
 script. It must match the `ADMIN_EMAIL` environment variable exactly; if the two diverge,
@@ -151,6 +162,8 @@ The site is then available at <http://localhost:3000>.
 | `npm run lint` | Run ESLint (`next/core-web-vitals`) |
 | `npm run typecheck` | Run `tsc --noEmit` |
 | `npm test` | Run the automated tests (Node's built-in runner) |
+| `npm run newsletter:secret` | Generate the newsletter signup secret and its database hash |
+| `npm run images:optimise` | Convert oversized PNG photographs to WebP |
 
 > **Do not run `npm run build` while the development server is running.** Both write to
 > `.next`, and interleaving their output produces misleading runtime errors such as
@@ -167,15 +180,32 @@ The site is then available at <http://localhost:3000>.
 npm test
 ```
 
-Node's built-in test runner, no test dependency. Two suites live in [`tests/`](tests):
+Node's built-in test runner, no test dependency. Four suites live in [`tests/`](tests).
 
-- **`newsletter.logic.test.ts`** — pure logic, always runs: `NEWSLETTER_ENABLED` parsing
-  (including that every ambiguous value fails closed), token generation and hashing, and
-  email validation.
-- **`newsletter.rpc.test.ts`** — the confirmation lifecycle against the real database
-  functions. **Skipped unless you opt in** with `NEWSLETTER_RPC_TESTS=1`, because it
-  touches a live Supabase project. It sends no email and calls no email provider, and
-  every fixture uses a unique `.invalid` address that can never be delivered to.
+**Always run, no setup:**
+
+- **`newsletter.logic.test.ts`** — `NEWSLETTER_ENABLED` parsing (including that every
+  ambiguous value fails closed), token generation and hashing, and email validation.
+- **`content.logic.test.ts`** — update slugs, event times across a daylight-saving
+  boundary, the product catalogue, and a guard asserting no payment dependency has crept
+  in. It also checks every product photograph referenced in code exists on disk, which is
+  what catches a renamed image.
+
+**Opt-in, because they need something running:**
+
+- **`newsletter.rpc.test.ts`** and **`newsletter.security.test.ts`** — the confirmation
+  lifecycle and the signup function's defences, against the real database. Enable with
+  `NEWSLETTER_RPC_TESTS=1`. They send no email and call no email provider, and every
+  fixture uses a unique `.invalid` address that can never be delivered to.
+- **`routes.smoke.test.ts`** — every public route renders, admin routes serve nothing to
+  a signed-out visitor, no secret appears in the markup, and the site offers no way to
+  buy anything. Needs a running server:
+
+  ```bash
+  npm run build
+  npm start
+  SMOKE_BASE_URL=http://localhost:3000 npm test
+  ```
 
 ## Environment variables
 
@@ -190,6 +220,7 @@ Node's built-in test runner, no test dependency. Two suites live in [`tests/`](t
 | `RESEND_CONTACTS_API_KEY` | **No** | Resend key with `full_access`. Required for subscriber management |
 | `NEWSLETTER_ENABLED` | **No** | Master switch, **fail closed**. Signups are off unless this is `true`, `1`, `yes` or `on` |
 | `NEXT_PUBLIC_SITE_URL` | Yes | Public origin used to build confirmation links. Must be the live origin in production |
+| `NEWSLETTER_RPC_SECRET` | **No** | Binds the signup database function to this server. Without it, signups stay closed |
 
 The two `NEXT_PUBLIC_` values are compiled into the client bundle by design. The
 publishable key is intended to be public; access control is enforced by Row Level
@@ -414,9 +445,9 @@ Each photograph is framed around its own subject rather than forced into a share
 | --- | --- | --- |
 | `ahcd-product-jar.jpg` | 1280 × 617 | Framed at its native ratio with `object-contain`, so neither the jar nor the labelled lid is ever cut |
 | `ali-founder-with-jar.jpg` | 1280 × 1707 | Portrait only; any landscape crop would remove either Ali's face or the jars |
-| `ahcd-tikka-ramen.png` | 1222 × 880 | Wide band trimming only tablecloth, keeping both dishes in frame at every width |
-| `ahcd-avocado-egg-toast.png` | 1154 × 880 | Near-native 4:3, anchored left so the jar at the frame's edge survives |
-| `ahcd-eggs-and-rice.png` | 1594 × 1602 | Square, with the focal point shifted slightly downwards to centre the bowl |
+| `ahcd-tikka-ramen.webp` | 1222 × 880 | Wide band trimming only tablecloth, keeping both dishes in frame at every width |
+| `ahcd-avocado-egg-toast.webp` | 1154 × 880 | Near-native 4:3, anchored left so the jar at the frame's edge survives |
+| `ahcd-eggs-and-rice.webp` | 1594 × 1602 | Square, with the focal point shifted slightly downwards to centre the bowl |
 
 Images attached to updates are rendered at their stored intrinsic dimensions, so they
 appear at their true proportions rather than being cropped to a uniform shape.

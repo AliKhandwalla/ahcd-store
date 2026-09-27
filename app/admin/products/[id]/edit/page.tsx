@@ -5,12 +5,17 @@ import ProductForm, {
 } from "@/components/admin/ProductForm";
 import { saveProduct } from "@/lib/products/actions";
 import { getProductForEdit } from "@/lib/products/admin-queries";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 export default async function EditProductPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { id } = await params;
   const product = await getProductForEdit(id);
 

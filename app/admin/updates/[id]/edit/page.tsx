@@ -4,12 +4,17 @@ import UpdateForm from "@/components/admin/UpdateForm";
 import { saveUpdate } from "@/lib/updates/actions";
 import { getUpdateForEdit } from "@/lib/updates/queries";
 import { utcToZonedLocalInput } from "@/lib/updates/time";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 export default async function EditUpdatePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const { id } = await params;
   const record = await getUpdateForEdit(id);
 

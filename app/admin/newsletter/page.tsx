@@ -1,9 +1,12 @@
 import Link from "next/link";
+import PruneExpiredPending from "@/components/admin/PruneExpiredPending";
 import ResendConfigCheck from "@/components/admin/ResendConfigCheck";
+import { countExpiredPending } from "@/lib/newsletter/admin";
 import { newsletterReadiness } from "@/lib/newsletter/config";
 import { getContactTotals } from "@/lib/newsletter/resend";
 import { createClient } from "@/lib/supabase/server";
 import { listAllUpdates } from "@/lib/updates/queries";
+import { adminPageAllowed } from "@/lib/admin/auth";
 
 function Stat({
   label,
@@ -26,6 +29,10 @@ function Stat({
 }
 
 export default async function AdminNewsletterPage() {
+  // The layout cannot protect this page: layouts and pages render in
+  // parallel, so its redirect does not stop this component running.
+  if (!(await adminPageAllowed())) return null;
+
   const readiness = newsletterReadiness();
 
   // Pending confirmations come from Supabase; the admin SELECT policy allows
@@ -36,6 +43,7 @@ export default async function AdminNewsletterPage() {
     .select("id", { count: "exact", head: true });
 
   const totals = readiness.ready ? await getContactTotals() : null;
+  const expiredPending = await countExpiredPending();
 
   // Why a figure is missing: either the newsletter isn't configured, or the
   // provider call failed. Either way the dashboard says so rather than
@@ -125,6 +133,25 @@ export default async function AdminNewsletterPage() {
           lib/newsletter/resend.ts if the list grows beyond that.
         </p>
       )}
+
+      <section className="mt-8">
+        <h2 className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+          Housekeeping
+        </h2>
+        <p className="mt-2 mb-3 text-sm text-slate-600">
+          Confirmation links last 24 hours. Expired ones are cleared
+          automatically whenever somebody signs up, so this is only needed
+          after a quiet spell.
+        </p>
+        {expiredPending === null ? (
+          <p className="text-sm text-slate-500">
+            Couldn&apos;t read the expired count. Has the
+            newsletter_admin_prune migration been run?
+          </p>
+        ) : (
+          <PruneExpiredPending expired={expiredPending} />
+        )}
+      </section>
 
       <section className="mt-8">
         <h2 className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
