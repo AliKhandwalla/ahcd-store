@@ -98,10 +98,24 @@ export async function subscribeToNewsletter(
     // Proves the call came from this server. Anyone can obtain the
     // publishable key, so without this the checks above are bypassable by
     // calling the RPC directly.
-    p_app_secret: newsletterRpcSecret(),
+    //
+    // Coerced to a string deliberately: supabase-js OMITS a key whose value
+    // is undefined, and PostgREST then resolves the call to the old
+    // four-argument signature that no longer exists, turning a clean refusal
+    // into a confusing PGRST202 error.
+    p_app_secret: newsletterRpcSecret() ?? "",
   });
 
   if (error) {
+    // Logged because a swallowed error here is undiagnosable in production:
+    // the visitor sees a generic message and nothing reaches the operator.
+    // The code and message are provider diagnostics; the address is NOT
+    // logged, so this adds no personal data to the logs.
+    console.error("[newsletter] newsletter_request failed", {
+      code: error.code,
+      message: error.message,
+      hint: error.hint,
+    });
     return {
       status: "error",
       message: "Something went wrong. Please try again in a moment.",
