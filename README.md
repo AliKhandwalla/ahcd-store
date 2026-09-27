@@ -54,7 +54,11 @@ per-update URL, rendered through one consistent template.
 give an email address and explicit consent, receive a confirmation link that expires in
 24 hours and works once, and only become subscribers after clicking it. Resend is
 authoritative for subscription and unsubscribe status; Supabase holds only unconfirmed
-requests, which are deleted at confirmation. The admin can preview any published Update
+requests, which are deleted at confirmation. That deletion happens in a deliberate
+order — the pending row is read without being removed, the contact is created in Resend,
+and only then is the token burned. If the provider errors or times out, the link still
+works and the subscriber can simply click it again; retrying is safe because Resend
+upserts contacts by email. The admin can preview any published Update
 as a branded email and send it to themselves. **Broadcasting to subscribers is not
 implemented.**
 
@@ -146,6 +150,7 @@ The site is then available at <http://localhost:3000>.
 | `npm start` | Serve a production build |
 | `npm run lint` | Run ESLint (`next/core-web-vitals`) |
 | `npm run typecheck` | Run `tsc --noEmit` |
+| `npm test` | Run the automated tests (Node's built-in runner) |
 
 > **Do not run `npm run build` while the development server is running.** Both write to
 > `.next`, and interleaving their output produces misleading runtime errors such as
@@ -155,6 +160,22 @@ The site is then available at <http://localhost:3000>.
 > ```bash
 > rm -rf .next && npm run dev
 > ```
+
+### Tests
+
+```bash
+npm test
+```
+
+Node's built-in test runner, no test dependency. Two suites live in [`tests/`](tests):
+
+- **`newsletter.logic.test.ts`** — pure logic, always runs: `NEWSLETTER_ENABLED` parsing
+  (including that every ambiguous value fails closed), token generation and hashing, and
+  email validation.
+- **`newsletter.rpc.test.ts`** — the confirmation lifecycle against the real database
+  functions. **Skipped unless you opt in** with `NEWSLETTER_RPC_TESTS=1`, because it
+  touches a live Supabase project. It sends no email and calls no email provider, and
+  every fixture uses a unique `.invalid` address that can never be delivered to.
 
 ## Environment variables
 
@@ -167,7 +188,8 @@ The site is then available at <http://localhost:3000>.
 | `RESEND_FROM_EMAIL` | **No** | Verified sending identity, e.g. `Brand <newsletter@mail.example.com>` |
 | `RESEND_REPLY_TO` | **No** | Reply address, also published in the privacy notice |
 | `RESEND_CONTACTS_API_KEY` | **No** | Resend key with `full_access`. Required for subscriber management |
-| `NEWSLETTER_ENABLED` | **No** | Optional kill switch. Only the literal `false` disables signups |
+| `NEWSLETTER_ENABLED` | **No** | Master switch, **fail closed**. Signups are off unless this is `true`, `1`, `yes` or `on` |
+| `NEXT_PUBLIC_SITE_URL` | Yes | Public origin used to build confirmation links. Must be the live origin in production |
 
 The two `NEXT_PUBLIC_` values are compiled into the client bundle by design. The
 publishable key is intended to be public; access control is enforced by Row Level

@@ -72,18 +72,29 @@ export default async function ConfirmPage({
   );
 }
 
+/**
+ * Confirmation is deliberately ordered peek -> create contact -> consume.
+ *
+ * The token is NOT destroyed until Resend has actually accepted the contact.
+ * If the provider errors or times out, the pending row survives and the
+ * subscriber can simply click the link again. The previous implementation
+ * deleted first, so any provider failure burned the link permanently.
+ *
+ * Retrying is safe because Resend upserts contacts by email: posting the same
+ * address twice returns the same contact id rather than creating a duplicate.
+ */
 async function confirm(token: string | undefined): Promise<Outcome> {
   const readiness = newsletterReadiness();
   if (!readiness.ready) return "disabled";
   if (!token) return "missing";
 
   const supabase = await createClient();
+  const tokenHash = hashToken(token);
 
-  // Exchanges the token hash for the address and deletes the row, so the
-  // token is single-use. Unknown, expired and already-used tokens are
-  // indistinguishable here by design.
-  const { data, error } = await supabase.rpc("newsletter_confirm", {
-    p_token_hash: hashToken(token),
+  // 1. Read without deleting. Unknown, expired and already-used tokens are
+  //    indistinguishable here by design.
+  const { data, error } = await supabase.rpc("newsletter_peek", {
+    p_token_hash: tokenHash,
   });
 
   if (error) return "failed";
@@ -91,15 +102,21 @@ async function confirm(token: string | undefined): Promise<Outcome> {
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.email) return "expired";
 
-  // Only now does the address reach Resend, with unsubscribed:false — which
-  // is also why a previously unsubscribed contact is never reactivated
-  // without a fresh opt-in.
+  // 2. Only now does the address reach Resend, with unsubscribed:false —
+  //    which is why a previously unsubscribed contact is never reactivated
+  //    without a fresh opt-in.
   const result = await upsertConfirmedContact({
     email: row.email as string,
     consentVersion: (row.consent_version as string) ?? CONSENT_VERSION,
-    consentedAt:
-      (row.consented_at as string) ?? new Date().toISOString(),
+    consentedAt: (row.consented_at as string) ?? new Date().toISOString(),
   });
 
-  return result.ok ? "confirmed" : "failed";
+  // Token intact, so the subscriber can retry and succeed.
+  if (!result.ok) return "failed";
+
+  // 3. Burn the token. A false result means a concurrent request consumed it
+  //    first — the contact still exists either way, so this is a success.
+  await supabase.rpc("newsletter_consume", { p_token_hash: tokenHash });
+
+  return "confirmed";
 }

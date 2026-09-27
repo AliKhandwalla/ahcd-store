@@ -60,10 +60,29 @@ function value(name: string) {
  * experience than saying signups aren't open. Resend stays the single source
  * of truth — we never park "confirmed" people in Supabase as a workaround.
  */
+const AFFIRMATIVE = ["true", "1", "yes", "on"];
+
+/**
+ * Whether signups are explicitly switched on.
+ *
+ * FAIL CLOSED: anything that isn't an unambiguous yes means off — unset,
+ * empty, "false", "False", "no", or a typo. The previous logic disabled only
+ * on the exact lowercase string "false", so a misspelling would silently
+ * *enable* public signups. Defaulting to off is the safe direction for a
+ * system that emails members of the public.
+ */
+export function isNewsletterExplicitlyEnabled() {
+  const raw = (process.env.NEWSLETTER_ENABLED ?? "").trim().toLowerCase();
+  return AFFIRMATIVE.includes(raw);
+}
+
 export function newsletterReadiness(): NewsletterReadiness {
-  // Optional emergency kill switch. Only an explicit "false" disables.
-  if (value("NEWSLETTER_ENABLED") === "false") {
-    return { ready: false, reason: "Signups are temporarily switched off." };
+  if (!isNewsletterExplicitlyEnabled()) {
+    return {
+      ready: false,
+      reason:
+        "Signups are switched off. Set NEWSLETTER_ENABLED=true to open them.",
+    };
   }
 
   const sending = sendingConfig();

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ResendConfigCheck from "@/components/admin/ResendConfigCheck";
 import { newsletterReadiness } from "@/lib/newsletter/config";
 import { getContactTotals } from "@/lib/newsletter/resend";
 import { createClient } from "@/lib/supabase/server";
@@ -124,6 +125,18 @@ export default async function AdminNewsletterPage() {
           lib/newsletter/resend.ts if the list grows beyond that.
         </p>
       )}
+
+      <section className="mt-8">
+        <h2 className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
+          Email configuration
+        </h2>
+        <p className="mt-2 mb-3 text-sm text-slate-600">
+          Verifies the keys actually work, rather than just being present —
+          including whether the contacts key has full access and whether the
+          consent properties exist in Resend.
+        </p>
+        <ResendConfigCheck />
+      </section>
 
       <section className="mt-8">
         <h2 className="text-xs font-semibold tracking-[0.14em] text-slate-500 uppercase">
